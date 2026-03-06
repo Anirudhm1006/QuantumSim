@@ -1,0 +1,95 @@
+{
+    "version": 6,
+    "cmakeMinimumRequired": "3.18",
+    "configurePresets": [
+        {
+            "name": "base",
+            "hidden": true,
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "installDir": "${sourceDir}/install/${presetName}",
+            "generator": "Unix Makefiles",
+            "env": {
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+            },
+            "cacheVariables": {
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+                "ENABLE_ASAN": "ON"
+            }
+        },
+        {
+            "name": "debug",
+            "displayName": "Debug Build",
+            "description": "Debug build with Address Sanitizer and Leak Sanitizer enabled",
+            "inherits": ["base"],
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_VERBOSE_MAKEFILE": "ON"
+            }
+        },
+        {
+            "name": "release",
+            "displayName": "Release Build",
+            "description": "Optimized release build with -O3",
+            "inherits": ["base"],
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "relwithdebinfo",
+            "displayName": "Release with Debug Info",
+            "description": "Optimized build with debug symbols for debugging",
+            "inherits": ["base"],
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+            }
+        },
+        {
+            "name": "wasm",
+            "displayName": "WebAssembly Build",
+            "description": "Build for WebAssembly with Emscripten",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "WASM": "ON"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "debug",
+            "configurePreset": "debug",
+            "targets": "QuantumSim"
+        },
+        {
+            "name": "release",
+            "configurePreset": "release",
+            "targets": "QuantumSim"
+        },
+        {
+            "name": "relwithdebinfo",
+            "configurePreset": "relwithdebinfo",
+            "targets": "QuantumSim"
+        },
+        {
+            "name": "wasm",
+            "configurePreset": "wasm",
+            "targets": "QuantumSim"
+        }
+    ],
+    "workflowPresets": [
+        {
+            "name": "default",
+            "steps": [
+                {
+                    "type": "configure",
+                    "preset": "release"
+                },
+                {
+                    "type": "build",
+                    "preset": "release"
+                }
+            ]
+        }
+    ]
+}
