@@ -1,3 +1,0 @@
-/home/anirudh/Projects/Quantum Simulator/build/_deps/raylib-subbuild/CMakeFiles/raylib-populate.dir
-/home/anirudh/Projects/Quantum Simulator/build/_deps/raylib-subbuild/CMakeFiles/edit_cache.dir
-/home/anirudh/Projects/Quantum Simulator/build/_deps/raylib-subbuild/CMakeFiles/rebuild_cache.dir
