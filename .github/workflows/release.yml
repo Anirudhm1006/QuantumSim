@@ -1,0 +1,108 @@
+name: Release Build
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux
+            arch: x64
+          - os: windows-latest
+            platform: windows
+            arch: x64
+          - os: macos-latest
+            platform: macos
+            arch: arm64
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Linux dependencies
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgl1-mesa-dev libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev
+
+      - name: Configure CMake (Linux/macOS)
+        if: matrix.platform != 'windows'
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Configure CMake (Windows)
+        if: matrix.platform == 'windows'
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release -j 4
+
+      - name: Create resources directory structure
+        run: |
+          mkdir -p package/resources
+          cp -r resources/* package/resources/ 2>/dev/null || true
+
+      - name: Package Linux
+        if: matrix.platform == 'linux'
+        run: |
+          cp build/QuantumSim package/
+          cd package
+          tar -czf ../QuantumSim-linux-x64.tar.gz .
+          cd ..
+          mv QuantumSim-linux-x64.tar.gz .
+
+      - name: Package Windows
+        if: matrix.platform == 'windows'
+        run: |
+          cp build/Release/QuantumSim.exe package/
+          cd package
+          powershell -Command "Compress-Archive -Path * -DestinationPath ../QuantumSim-windows-x64.zip"
+          cd ..
+          mv QuantumSim-windows-x64.zip .
+
+      - name: Package macOS
+        if: matrix.platform == 'macos'
+        run: |
+          cp build/QuantumSim package/
+          cd package
+          tar -czf ../QuantumSim-macos-arm64.tar.gz .
+          cd ..
+          mv QuantumSim-macos-arm64.tar.gz .
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: QuantumSim-${{ matrix.platform }}-${{ matrix.arch }}
+          path: |
+            QuantumSim-*.tar.gz
+            QuantumSim-*.zip
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/QuantumSim-linux-x64/QuantumSim-linux-x64.tar.gz
+            artifacts/QuantumSim-windows-x64/QuantumSim-windows-x64.zip
+            artifacts/QuantumSim-macos-arm64/QuantumSim-macos-arm64.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
