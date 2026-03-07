@@ -334,3 +334,13 @@ namespace hydrogen_utils {
         return 410.17;
     }
 }
+
+nlohmann::json HydrogenModel::to_json() const {
+    return {
+        {"type", "HydrogenModel"},
+        {"n", quantum_numbers_.n},
+        {"l", quantum_numbers_.l},
+        {"m", quantum_numbers_.m},
+        {"Z", Z_}
+    };
+}

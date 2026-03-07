@@ -1,11 +1,14 @@
 #pragma once
 
-#include <complex>
-#include <vector>
-#include <string>
 #include <array>
 #include <cmath>
+#include <complex>
 #include <optional>
+#include <string>
+#include <vector>
+
+#include <nlohmann/json.hpp>
+
 #include "IQuantumObject.hpp"
 
 // =============================================================================
@@ -85,6 +88,8 @@ public:
     [[nodiscard]] std::vector<std::complex<double>> get_wavefunction() const override;
     [[nodiscard]] double get_probability_density(const std::vector<double>& position) const override;
     [[nodiscard]] std::string get_state_descriptor() const override;
+    [[nodiscard]] nlohmann::json to_json() const override;
+    [[nodiscard]] std::string get_type_name() const override { return "EntanglementSystem"; }
 
     // State manipulation
     void set_state(const TwoQubitState& state);

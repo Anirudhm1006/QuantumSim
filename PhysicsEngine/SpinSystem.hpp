@@ -1,10 +1,13 @@
 #pragma once
 
-#include <complex>
-#include <vector>
-#include <string>
-#include <cmath>
 #include <array>
+#include <cmath>
+#include <complex>
+#include <string>
+#include <vector>
+
+#include <nlohmann/json.hpp>
+
 #include "IQuantumObject.hpp"
 
 // =============================================================================
@@ -61,8 +64,9 @@ public:
     // Calculate probability density (for compatibility with interface)
     [[nodiscard]] double get_probability_density(const std::vector<double>& position) const override;
 
-    // Get state descriptor
     [[nodiscard]] std::string get_state_descriptor() const override;
+    [[nodiscard]] nlohmann::json to_json() const override;
+    [[nodiscard]] std::string get_type_name() const override { return "SpinSystem"; }
 
     // Set spin state using Bloch sphere angles
     void set_bloch_angles(double theta, double phi);

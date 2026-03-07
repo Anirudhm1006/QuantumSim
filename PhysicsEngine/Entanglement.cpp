@@ -564,3 +564,17 @@ namespace entanglement_utils {
         return logarithmic_negativity(rho);
     }
 }
+
+nlohmann::json EntanglementSystem::to_json() const {
+    return {
+        {"type", "EntanglementSystem"},
+        {"amp_00_re", state_.amp_00.real()},
+        {"amp_00_im", state_.amp_00.imag()},
+        {"amp_01_re", state_.amp_01.real()},
+        {"amp_01_im", state_.amp_01.imag()},
+        {"amp_10_re", state_.amp_10.real()},
+        {"amp_10_im", state_.amp_10.imag()},
+        {"amp_11_re", state_.amp_11.real()},
+        {"amp_11_im", state_.amp_11.imag()}
+    };
+}

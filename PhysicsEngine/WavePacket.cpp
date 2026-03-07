@@ -183,3 +183,14 @@ namespace wave_packet_propagation {
         return 0.0;
     }
 } // namespace wave_packet_propagation
+
+nlohmann::json WavePacket::to_json() const {
+    return {
+        {"type", "WavePacket"},
+        {"x0", x0_},
+        {"v", v_},
+        {"sigma", sigma_},
+        {"k0", k0_},
+        {"omega", omega_}
+    };
+}

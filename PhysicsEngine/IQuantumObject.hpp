@@ -1,7 +1,11 @@
 #pragma once
 
 #include <complex>
+#include <memory>
+#include <string>
 #include <vector>
+
+#include <nlohmann/json.hpp>
 
 // Forward declarations
 template<typename T>
@@ -11,14 +15,17 @@ class IQuantumObject {
 public:
     virtual ~IQuantumObject() = default;
 
-    // Get the wavefunction as a vector of complex amplitudes
     [[nodiscard]] virtual std::vector<std::complex<double>> get_wavefunction() const = 0;
 
-    // Calculate probability density at a given position
     [[nodiscard]] virtual double get_probability_density(const std::vector<double>& position) const = 0;
 
-    // Get the quantum state descriptor (n, l, m for hydrogen, etc.)
     [[nodiscard]] virtual std::string get_state_descriptor() const = 0;
+
+    [[nodiscard]] virtual nlohmann::json to_json() const = 0;
+
+    [[nodiscard]] virtual std::string get_type_name() const = 0;
+
+    static std::unique_ptr<IQuantumObject> from_json(const nlohmann::json& j);
 };
 
 // Template for state vectors in Dirac notation

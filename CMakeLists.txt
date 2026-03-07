@@ -38,6 +38,14 @@ FetchContent_Declare(
     GIT_SHALLOW TRUE
 )
 
+# nlohmann/json - modern JSON library for C++
+FetchContent_Declare(
+    json
+    GIT_REPOSITORY https://github.com/nlohmann/json.git
+    GIT_TAG v3.11.3
+    GIT_SHALLOW TRUE
+)
+
 # Platform-specific Raylib options
 if(WASM)
     # WebAssembly specific settings
@@ -45,7 +53,7 @@ if(WASM)
     set(BUILD_GAMES OFF CACHE BOOL "" FORCE)
 endif()
 
-FetchContent_MakeAvailable(raylib)
+FetchContent_MakeAvailable(raylib json)
 
 # ============================================================================
 # Application Sources
@@ -88,7 +96,7 @@ else()
 endif()
 
 # Link Raylib
-target_link_libraries(QuantumSim PRIVATE raylib)
+target_link_libraries(QuantumSim PRIVATE raylib nlohmann_json::nlohmann_json)
 
 # ============================================================================
 # Build Type Specific Settings
@@ -150,11 +158,25 @@ foreach(shader ${SHADER_FILES})
     target_sources(QuantumSim PRIVATE ${CMAKE_BINARY_DIR}/resources/shaders/${shader_name})
 endforeach()
 
-# Create resources directory in build if it doesn't exist
+# Create resources directories in build
 add_custom_command(TARGET QuantumSim POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory
         ${CMAKE_BINARY_DIR}/resources/shaders
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+        ${CMAKE_BINARY_DIR}/resources/fonts
 )
+
+# Copy font files to build directory
+file(GLOB FONT_FILES "${CMAKE_CURRENT_SOURCE_DIR}/resources/fonts/*.ttf")
+foreach(font ${FONT_FILES})
+    get_filename_component(font_name ${font} NAME)
+    add_custom_command(TARGET QuantumSim POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${font}
+            ${CMAKE_BINARY_DIR}/resources/fonts/${font_name}
+        COMMENT "Copying font: ${font_name}"
+    )
+endforeach()
 
 # ============================================================================
 # WASM-specific configuration

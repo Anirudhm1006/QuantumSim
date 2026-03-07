@@ -1,10 +1,12 @@
 #pragma once
 
 #include <complex>
-#include <vector>
-#include <string>
-#include <cmath>
 #include <functional>
+#include <string>
+#include <vector>
+
+#include <nlohmann/json.hpp>
+
 #include "IQuantumObject.hpp"
 
 // =============================================================================
@@ -44,8 +46,9 @@ public:
     // Calculate probability density at a given position (r, theta, phi)
     [[nodiscard]] double get_probability_density(const std::vector<double>& position) const override;
 
-    // Get state descriptor
     [[nodiscard]] std::string get_state_descriptor() const override;
+    [[nodiscard]] nlohmann::json to_json() const override;
+    [[nodiscard]] std::string get_type_name() const override { return "HydrogenModel"; }
 
     // Get quantum numbers
     [[nodiscard]] const QuantumNumbers& get_quantum_numbers() const { return quantum_numbers_; }

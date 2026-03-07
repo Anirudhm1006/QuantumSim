@@ -1,337 +1,228 @@
-// =============================================================================
-// Quantum Physics Simulator - 3D Visualization with UI
-// =============================================================================
-// Interactive quantum physics visualization with Inspector Panel
-// =============================================================================
-
 #include <cmath>
 #include <memory>
+#include <vector>
+
 #include <raylib.h>
 
-// PhysicsEngine headers
-#include "WavePacket.hpp"
-#include "SpinSystem.hpp"
-#include "HydrogenModel.hpp"
-#include "Laser.hpp"
+#include "IScenario.hpp"
+#include "scenarios/DoubleSlitScenario.hpp"
+#include "scenarios/TunnelingScenario.hpp"
+#include "scenarios/InfiniteWellScenario.hpp"
+#include "scenarios/AtomViewerScenario.hpp"
+#include "scenarios/FreeParticleScenario.hpp"
+#include "scenarios/PhotoelectricScenario.hpp"
+#include "scenarios/SpectrumScenario.hpp"
+#include "scenarios/DeBroglieScenario.hpp"
+#include "scenarios/HeisenbergScenario.hpp"
+#include "MenuBar.hpp"
 
-// UIHandler
-#include "InspectorPanel.hpp"
+static void update_orbit_camera(Camera3D& cam, bool in_viewport) {
+    if (!in_viewport) return;
 
-// =============================================================================
-// Simulation State
-// =============================================================================
+    float dx = cam.position.x - cam.target.x;
+    float dy = cam.position.y - cam.target.y;
+    float dz = cam.position.z - cam.target.z;
+    float radius = std::sqrt(dx * dx + dy * dy + dz * dz);
+    float azimuth = std::atan2(dz, dx);
+    float elevation = std::asin(std::clamp(dy / radius, -1.0f, 1.0f));
 
-enum class SimulationMode {
-    HYDROGEN,
-    SPIN,
-    WAVE_PACKET,
-    LASER
-};
+    constexpr float ORBIT_SPEED = 0.003f;
+    constexpr float PAN_SPEED = 0.01f;
+    constexpr float ZOOM_SPEED = 1.5f;
+    constexpr float MIN_RADIUS = 1.0f;
+    constexpr float MAX_RADIUS = 60.0f;
+    constexpr float MAX_ELEVATION = 1.5f;
 
-struct SimState {
-    SimulationMode mode = SimulationMode::HYDROGEN;
-
-    // Hydrogen state
-    int hydrogen_n = 1;
-    int hydrogen_l = 0;
-    int hydrogen_m = 0;
-
-    // Spin state
-    double spin_theta = 0.0;
-    double spin_phi = 0.0;
-
-    // Wave packet state
-    double wave_x0_1 = -3.0;
-    double wave_sigma_1 = 0.5;
-    double wave_x0_2 = 3.0;
-    double wave_sigma_2 = 0.5;
-
-    // Laser state
-    double laser_wavelength = 632.8;  // HeNe laser
-};
-
-// =============================================================================
-// Initialize simulation state
-// =============================================================================
-
-void init_state(SimState& state) {
-    state.hydrogen_n = 1;
-    state.hydrogen_l = 0;
-    state.hydrogen_m = 0;
-
-    state.spin_theta = 0.0;
-    state.spin_phi = 0.0;
-
-    state.wave_x0_1 = -3.0;
-    state.wave_sigma_1 = 0.5;
-    state.wave_x0_2 = 3.0;
-    state.wave_sigma_2 = 0.5;
-
-    state.laser_wavelength = 632.8;
-}
-
-// =============================================================================
-// Update physics data based on mode
-// =============================================================================
-
-void update_physics_data(SimState& state, ui_handler::InspectorData& data) {
-    data.current_mode = static_cast<int>(state.mode);
-
-    switch (state.mode) {
-        case SimulationMode::HYDROGEN: {
-            HydrogenModel h(state.hydrogen_n, state.hydrogen_l, state.hydrogen_m);
-            data.n = state.hydrogen_n;
-            data.l = state.hydrogen_l;
-            data.m = state.hydrogen_m;
-            data.energy_eV = h.get_energy_eV();
-            data.quantum_mode = true;
-        } break;
-
-        case SimulationMode::SPIN: {
-            SpinSystem spin(state.spin_theta, state.spin_phi);
-            data.theta = state.spin_theta;
-            data.phi = state.spin_phi;
-            data.spin_x = spin.get_spin_projection_x();
-            data.spin_y = spin.get_spin_projection_y();
-            data.spin_z = spin.get_spin_projection_z();
-        } break;
-
-        case SimulationMode::WAVE_PACKET: {
-            data.x0_1 = state.wave_x0_1;
-            data.sigma_1 = state.wave_sigma_1;
-            data.x0_2 = state.wave_x0_2;
-            data.sigma_2 = state.wave_sigma_2;
-            data.superposition = true;
-        } break;
-
-        case SimulationMode::LASER: {
-            data.wavelength = state.laser_wavelength;
-            // Calculate frequency: f = c/lambda
-            double c = 299792458.0;  // m/s
-            double lambda_m = state.laser_wavelength * 1e-9;
-            data.frequency = c / lambda_m;
-            // Photon energy: E = hf
-            double h = 4.135667696e-15;  // eV·s
-            data.photon_energy = h * data.frequency;
-            data.n_photons = 1000;
-        } break;
+    if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+        Vector2 delta = GetMouseDelta();
+        azimuth -= delta.x * ORBIT_SPEED;
+        elevation += delta.y * ORBIT_SPEED;
+        elevation = std::clamp(elevation, -MAX_ELEVATION, MAX_ELEVATION);
     }
-}
 
-// =============================================================================
-// Render 3D scene based on mode
-// =============================================================================
+    if (IsMouseButtonDown(MOUSE_BUTTON_MIDDLE)) {
+        Vector2 delta = GetMouseDelta();
+        Vector3 forward = {cam.target.x - cam.position.x, 0, cam.target.z - cam.position.z};
+        float flen = std::sqrt(forward.x * forward.x + forward.z * forward.z);
+        if (flen > 1e-6f) {
+            forward.x /= flen;
+            forward.z /= flen;
+        }
+        Vector3 right = {-forward.z, 0, forward.x};
 
-void render_3d_scene(const SimState& state) {
-    switch (state.mode) {
-        case SimulationMode::HYDROGEN: {
-            // Draw hydrogen atom representation
-            // Draw orbitals as simple spheres at different distances
-            for (int n = 1; n <= state.hydrogen_n; n++) {
-                float radius = (float)n * 1.5f;
-                DrawSphere((Vector3){radius, 0, 0}, 0.15f, Fade(BLUE, 0.5f));
-                DrawSphere((Vector3){-radius, 0, 0}, 0.15f, Fade(BLUE, 0.5f));
-                DrawSphere((Vector3){0, radius, 0}, 0.15f, Fade(BLUE, 0.5f));
-                DrawSphere((Vector3){0, -radius, 0}, 0.15f, Fade(BLUE, 0.5f));
-            }
+        float pan_x = -delta.x * PAN_SPEED * radius * 0.05f;
+        float pan_y = delta.y * PAN_SPEED * radius * 0.05f;
 
-            // Draw nucleus
-            DrawSphere((Vector3){0, 0, 0}, 0.3f, MAROON);
-
-            // Draw label
-            DrawText(TextFormat("n=%d", state.hydrogen_n),
-                     -30, 50, 20, WHITE);
-        } break;
-
-        case SimulationMode::SPIN: {
-            // Draw Bloch sphere as simple wireframe
-            float sphere_radius = 3.0f;
-
-            // Draw sphere surface (simplified)
-            DrawSphere((Vector3){0, 0, 0}, sphere_radius, Fade(DARKGRAY, 0.3f));
-
-            // Draw axis lines
-            DrawLine3D((Vector3){0, -sphere_radius, 0}, (Vector3){0, sphere_radius, 0}, RED);
-            DrawLine3D((Vector3){-sphere_radius, 0, 0}, (Vector3){sphere_radius, 0, 0}, GREEN);
-            DrawLine3D((Vector3){0, 0, -sphere_radius}, (Vector3){0, 0, sphere_radius}, BLUE);
-
-            // Draw state vector
-            float sx = sphere_radius * std::sin(state.spin_theta) * std::cos(state.spin_phi);
-            float sy = sphere_radius * std::cos(state.spin_theta);
-            float sz = sphere_radius * std::sin(state.spin_theta) * std::sin(state.spin_phi);
-
-            DrawLine3D((Vector3){0, 0, 0}, (Vector3){sx, sy, sz}, GREEN);
-            DrawSphere((Vector3){sx, sy, sz}, 0.2f, GREEN);
-
-            // Draw axis labels
-            DrawText("|+z>", -40, 60, 20, GREEN);
-            DrawText("|-z>", -40, -70, 20, RED);
-            DrawText("|+x>", 40, -40, 20, YELLOW);
-        } break;
-
-        case SimulationMode::WAVE_PACKET: {
-            // Draw wave packets as 3D Gaussians
-            int num_points = 50;
-
-            // Wave packet 1
-            for (int i = 0; i < num_points; i++) {
-                float x = -8.0f + (float)i * 16.0f / (float)num_points;
-                double dx = x - state.wave_x0_1;
-                double gaussian = std::exp(-dx * dx / (2 * state.wave_sigma_1 * state.wave_sigma_1));
-                float size = (float)(gaussian * 0.3f);
-
-                DrawSphere((Vector3){(float)state.wave_x0_1, 0, 0}, (float)gaussian * 0.5f, Fade(BLUE, 0.5f));
-            }
-
-            // Wave packet 2
-            for (int i = 0; i < num_points; i++) {
-                float x = -8.0f + (float)i * 16.0f / (float)num_points;
-                double dx = x - state.wave_x0_2;
-                double gaussian = std::exp(-dx * dx / (2 * state.wave_sigma_2 * state.wave_sigma_2));
-
-                DrawSphere((Vector3){(float)state.wave_x0_2, 0, 0}, (float)gaussian * 0.5f, Fade(RED, 0.5f));
-            }
-
-            // Draw superposition region
-            DrawText("Superposition", -50, 50, 20, WHITE);
-        } break;
-
-        case SimulationMode::LASER: {
-            // Draw laser cavity (as a cylinder)
-            DrawCylinder((Vector3){-4, 0, 0}, 0.5f, 0.5f, 8.0f, 16, Fade(GRAY, 0.5f));
-
-            // Draw laser beam (as a thin cylinder)
-            Color laser_color = {255, 50, 50, 255};
-            DrawCylinder((Vector3){0, 0, 0}, 0.1f, 0.1f, 6.0f, 8, laser_color);
-
-            // Draw mirrors (as cubes)
-            Color mirror_color = {192, 192, 192, 255};  // Silver-ish
-            DrawCube((Vector3){-4, 0, 0}, 1.0f, 1.0f, 0.1f, mirror_color);
-            DrawCube((Vector3){4, 0, 0}, 1.0f, 1.0f, 0.1f, mirror_color);
-
-            // Draw wavelength
-            DrawText(TextFormat("lambda=%.1f nm", state.laser_wavelength),
-                    -60, 50, 20, WHITE);
-        } break;
+        cam.target.x += right.x * pan_x;
+        cam.target.z += right.z * pan_x;
+        cam.target.y += pan_y;
     }
-}
 
-// =============================================================================
-// Main Entry Point
-// =============================================================================
+    float wheel = GetMouseWheelMove();
+    if (std::abs(wheel) > 0.0f) {
+        radius -= wheel * ZOOM_SPEED;
+        radius = std::clamp(radius, MIN_RADIUS, MAX_RADIUS);
+    }
+
+    cam.position.x = cam.target.x + radius * std::cos(elevation) * std::cos(azimuth);
+    cam.position.y = cam.target.y + radius * std::sin(elevation);
+    cam.position.z = cam.target.z + radius * std::cos(elevation) * std::sin(azimuth);
+}
 
 int main() {
-    // Initialize window
-    const int screen_width = 900;
-    const int screen_height = 650;
-    const char* window_title = "Quantum Simulator - 3D Visualization";
+    const int screen_width = 1280;
+    const int screen_height = 800;
 
-    InitWindow(screen_width, screen_height, window_title);
-
-    // Set target FPS
+    InitWindow(screen_width, screen_height, "QuantumSim - Fysikk 2 Quantum Physics Simulator");
     SetTargetFPS(60);
+    SetWindowState(FLAG_WINDOW_RESIZABLE);
 
-    // Setup camera
+    int codepoints[512];
+    int cp_count = 0;
+    for (int i = 32; i < 127; ++i) codepoints[cp_count++] = i;
+    for (int i = 0x0370; i <= 0x03FF; ++i) codepoints[cp_count++] = i;
+    codepoints[cp_count++] = 0x210F; // hbar
+    codepoints[cp_count++] = 0x00B7; // middle dot
+    codepoints[cp_count++] = 0x2265; // >=
+    codepoints[cp_count++] = 0x00B2; // superscript 2
+    Font app_font = LoadFontEx("resources/fonts/inter.ttf", 32, codepoints, cp_count);
+    SetTextureFilter(app_font.texture, TEXTURE_FILTER_BILINEAR);
+
     Camera3D camera = {};
-    camera.position = {8.0f, 6.0f, 8.0f};
+    camera.position = {0.0f, 8.0f, 12.0f};
     camera.target = {0.0f, 0.0f, 0.0f};
     camera.up = {0.0f, 1.0f, 0.0f};
     camera.fovy = 45.0f;
     camera.projection = CAMERA_PERSPECTIVE;
 
-    // Initialize simulation state
-    SimState state;
-    init_state(state);
+    MenuBar menu_bar;
+    menu_bar.set_font(app_font);
 
-    // Initialize UI panel
-    ui_handler::InspectorPanel inspector;
-    ui_handler::InspectorData inspector_data;
+    constexpr int CONTROLS_W = 200;
+    constexpr int PROPERTIES_W = 230;
 
-    // Main loop
+    std::vector<std::unique_ptr<IScenario>> scenarios;
+    scenarios.push_back(std::make_unique<DoubleSlitScenario>());
+    scenarios.push_back(std::make_unique<TunnelingScenario>());
+    scenarios.push_back(std::make_unique<InfiniteWellScenario>());
+    scenarios.push_back(std::make_unique<AtomViewerScenario>());
+    scenarios.push_back(std::make_unique<FreeParticleScenario>());
+    scenarios.push_back(std::make_unique<PhotoelectricScenario>());
+    scenarios.push_back(std::make_unique<SpectrumScenario>());
+    scenarios.push_back(std::make_unique<DeBroglieScenario>());
+    scenarios.push_back(std::make_unique<HeisenbergScenario>());
+
+    for (auto& s : scenarios) s->set_font(app_font);
+
+    int active_idx = 0;
+    scenarios[active_idx]->on_enter();
+
+    auto switch_scenario = [&](int idx) {
+        if (idx >= 0 && idx < static_cast<int>(scenarios.size()) && idx != active_idx) {
+            active_idx = idx;
+            camera.position = {0.0f, 8.0f, 12.0f};
+            camera.target = {0.0f, 0.0f, 0.0f};
+            scenarios[active_idx]->on_enter();
+        }
+    };
+
     while (!WindowShouldClose()) {
-        // Handle input
-        if (IsKeyPressed(KEY_ONE)) {
-            state.mode = SimulationMode::HYDROGEN;
-        } else if (IsKeyPressed(KEY_TWO)) {
-            state.mode = SimulationMode::SPIN;
-        } else if (IsKeyPressed(KEY_THREE)) {
-            state.mode = SimulationMode::WAVE_PACKET;
-        } else if (IsKeyPressed(KEY_FOUR)) {
-            state.mode = SimulationMode::LASER;
-        } else if (IsKeyPressed(KEY_R)) {
-            init_state(state);
+        MenuAction action = menu_bar.update();
+        switch (action.type) {
+            case MenuAction::Type::SCENARIO_DOUBLE_SLIT:   switch_scenario(0); break;
+            case MenuAction::Type::SCENARIO_TUNNELING:     switch_scenario(1); break;
+            case MenuAction::Type::SCENARIO_INFINITE_WELL: switch_scenario(2); break;
+            case MenuAction::Type::SCENARIO_HYDROGEN:      switch_scenario(3); break;
+            case MenuAction::Type::SCENARIO_FREE_PARTICLE: switch_scenario(4); break;
+            case MenuAction::Type::SCENARIO_PHOTOELECTRIC: switch_scenario(5); break;
+            case MenuAction::Type::SCENARIO_SPECTRUM:      switch_scenario(6); break;
+            case MenuAction::Type::SCENARIO_DE_BROGLIE:    switch_scenario(7); break;
+            case MenuAction::Type::SCENARIO_HEISENBERG:    switch_scenario(8); break;
+            case MenuAction::Type::NONE: break;
         }
 
-        // Parameter adjustment based on mode
-        if (IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_LEFT)) {
-            float delta = IsKeyDown(KEY_RIGHT) ? 0.05f : -0.05f;
+        IScenario* sc = scenarios[active_idx].get();
 
-            switch (state.mode) {
-                case SimulationMode::HYDROGEN:
-                    if (IsKeyDown(KEY_UP) && state.hydrogen_n < 5) state.hydrogen_n++;
-                    if (IsKeyDown(KEY_DOWN) && state.hydrogen_n > 1) state.hydrogen_n--;
-                    break;
-                case SimulationMode::SPIN:
-                    state.spin_theta += delta;
-                    state.spin_theta = std::max(0.0, std::min((double)PI, state.spin_theta));
-                    break;
-                case SimulationMode::WAVE_PACKET:
-                    state.wave_x0_1 += delta;
-                    state.wave_x0_2 -= delta;
-                    break;
-                case SimulationMode::LASER:
-                    state.laser_wavelength += delta * 100;
-                    state.laser_wavelength = std::max(400.0, std::min(700.0, state.laser_wavelength));
-                    break;
+        for (int key = KEY_ONE; key <= KEY_NINE; ++key) {
+            if (IsKeyPressed(key)) {
+                int view = key - KEY_ONE;
+                if (view < sc->get_view_count()) {
+                    sc->set_view(view);
+                }
             }
         }
 
-        // Update camera
-        UpdateCamera(&camera, CAMERA_ORBITAL);
+        sc->handle_input();
 
-        // Update physics data for UI
-        update_physics_data(state, inspector_data);
-        inspector.update_data(inspector_data);
+        int sw = GetScreenWidth();
+        int sh = GetScreenHeight();
+        int vp_x = CONTROLS_W;
+        int vp_y = menu_bar.get_height();
+        int vp_w = sw - CONTROLS_W - PROPERTIES_W;
+        int vp_h = sh - vp_y - 26;
 
-        // Begin rendering
+        Vector2 mouse = GetMousePosition();
+        int mx = static_cast<int>(mouse.x);
+        int my = static_cast<int>(mouse.y);
+        bool in_viewport = mx > vp_x && mx < vp_x + vp_w && my > vp_y && my < vp_y + vp_h;
+
+        if (sc->uses_3d()) {
+            update_orbit_camera(camera, in_viewport);
+        }
+
+        sc->update(GetFrameTime());
+
         BeginDrawing();
         {
-            // Clear background
-            ClearBackground({10, 10, 20, 255});
+            ClearBackground(ui_colors::BG_DARK);
 
-            // Begin 3D mode
-            BeginMode3D(camera);
-            {
-                // Draw grid
-                DrawGrid(20, 1.0f);
+            sc->render_viewport(camera, vp_x, vp_y, vp_w, vp_h);
+            sc->render_controls(0, vp_y, CONTROLS_W, vp_h);
+            sc->render_properties(sw - PROPERTIES_W, vp_y, PROPERTIES_W, vp_h);
 
-                // Draw axes
-                DrawLine3D((Vector3){0, 0, 0}, (Vector3){3, 0, 0}, RED);
-                DrawLine3D((Vector3){0, 0, 0}, (Vector3){0, 3, 0}, GREEN);
-                DrawLine3D((Vector3){0, 0, 0}, (Vector3){0, 0, 3}, BLUE);
+            menu_bar.render_bar();
 
-                // Render quantum scene
-                render_3d_scene(state);
+            // View tabs below menu bar
+            int tab_x = CONTROLS_W;
+            int vc = sc->get_view_count();
+            if (vc > 1) {
+                for (int v = 0; v < vc; ++v) {
+                    int tw = 120;
+                    int tx = tab_x + v * (tw + 2);
+                    bool active = (v == sc->get_current_view());
+                    Color bg = active ? ui_colors::ACCENT : ui_colors::PANEL_BG;
+                    DrawRectangle(tx, vp_y, tw, 22, bg);
+                    DrawRectangleLinesEx({(float)tx, (float)vp_y, (float)tw, 22.0f}, 1.0f, ui_colors::PANEL_BORDER);
+
+                    const char* vname = sc->get_view_name(v);
+                    DrawTextEx(app_font, vname, {static_cast<float>(tx + 6), static_cast<float>(vp_y + 4)},
+                               12, 1, active ? ui_colors::TEXT_PRIMARY : ui_colors::TEXT_SECONDARY);
+
+                    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                        if (mx >= tx && mx < tx + tw && my >= vp_y && my < vp_y + 22) {
+                            sc->set_view(v);
+                        }
+                    }
+                }
             }
-            EndMode3D();
 
-            // Draw UI panel (2D overlay)
-            inspector.render();
+            // Status bar
+            int status_y = sh - 26;
+            DrawRectangle(0, status_y, sw, 26, Color{30, 30, 38, 255});
+            DrawTextEx(app_font, sc->get_name(), {8.0f, static_cast<float>(status_y + 6)}, 13, 1, ui_colors::ACCENT);
 
-            // Draw mode title at top
-            const char* mode_names[] = {"HYDROGEN ATOM", "SPIN (BLOCH SPHERE)", "WAVE PACKET", "HE-NE LASER"};
-            int mode_idx = static_cast<int>(state.mode);
-            DrawText(mode_names[mode_idx], 20, 20, 24, GOLD);
+            const char* view_label = sc->get_view_name(sc->get_current_view());
+            DrawTextEx(app_font, view_label, {200.0f, static_cast<float>(status_y + 6)}, 13, 1, ui_colors::TEXT_SECONDARY);
 
-            // Draw instructions
-            DrawText("Press 1-4 to switch modes, arrows to adjust, R to reset",
-                     20, 55, 14, GRAY);
+            DrawTextEx(app_font, TextFormat("%d FPS", GetFPS()),
+                       {static_cast<float>(sw - 60), static_cast<float>(status_y + 6)}, 13, 1, ui_colors::TEXT_SECONDARY);
+
+            menu_bar.render_dropdowns();
         }
         EndDrawing();
     }
 
-    // Cleanup
+    UnloadFont(app_font);
     CloseWindow();
-
     return 0;
 }

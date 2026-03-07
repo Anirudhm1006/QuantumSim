@@ -541,3 +541,13 @@ namespace laser_utils {
         return wavelength_to_energy_eV(wavelength_nm);
     }
 }
+
+nlohmann::json LaserSystem::to_json() const {
+    return {
+        {"type", "LaserSystem"},
+        {"scheme", static_cast<int>(scheme_)},
+        {"wavelength", transition_.wavelength},
+        {"upper_level", transition_.upper_level},
+        {"lower_level", transition_.lower_level}
+    };
+}

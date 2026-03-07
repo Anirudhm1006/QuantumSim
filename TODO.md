@@ -1,34 +1,37 @@
-# Quantum Sim Roadmap & Task Tracker
+# Quantum Sim Roadmap & Task Tracker (Sandbox Pivot)
 
-## 🟢 Phase 1: Infrastructure & Scaffolding
-- [x] **Setup Project Structure:** Create directories (`src`, `include`, `PhysicsEngine`, `RenderEngine`, `resources/shaders`).
-- [x] **CMake Integration:** Implement `CMakeLists.txt` with Raylib FetchContent (DevOps Agent).
-- [x] **Sanity Check Build:** Compile a basic Raylib "Hello World" window (Visualizer Agent).
-- [ ] **WASM Setup:** Verify cross-compilation toolchain for browser support (DevOps Agent).
+## Phase 1: Scene Graph & Serialization
+- [ ] **PotentialField:** Create `src/PotentialField.hpp/cpp` with 1D grid, builder methods (`set_barrier`, `set_well`, `set_double_slit`), and JSON serialization.
+- [ ] **Scene Container:** Create `src/Scene.hpp/cpp` owning `vector<unique_ptr<IQuantumObject>>`, `PotentialField`, and `GridSolver`. Implement `add_object()`, `remove_object()`, `get_selected()`, `serialize()`, `deserialize()`.
+- [ ] **IQuantumObject Extension:** Add `to_json()` and `from_json()` virtual methods to `PhysicsEngine/IQuantumObject.hpp`. Implement in all existing models (HydrogenModel, SpinSystem, WavePacket, LaserSystem, Entanglement).
+- [ ] **CMake: nlohmann/json:** Add `nlohmann/json` via FetchContent in `CMakeLists.txt`.
+- [ ] **ProjectManager:** Create `src/ProjectManager.hpp/cpp` with `save_project()` and `load_project()` targeting `.qsim` JSON files.
 
-## 🟡 Phase 2: Scientific Core (PhysicsEngine)
-- [x] **Physical Constants:** Define $h, c, R_H$ in `Constants.h` (Physicist Agent).
-- [x] **Bohr Math:** Implement $E_n = -13.6/n^2$ calculations (Physicist Agent).
-- [x] **Wavefunction Logic:** Implement Associated Laguerre Polynomials for Hydrogen radial distribution (Physicist Agent).
-- [x] **Unit Tests:** Verify spectral line output for Hydrogen Balmer series (Lead/Physicist).
-- [x] **Wave-Particle Duality:** Gaussian wave-packet superposition with interference (Physicist Agent).
-- [x] **Spin & Superposition:** Pauli matrices, Bloch sphere representation (Physicist Agent).
-- [x] **Entanglement:** Multi-particle state vectors (Bell states) (Physicist Agent).
-- [x] **Laser Physics:** Stimulated emission, population inversion (Physicist Agent).
+## Phase 2: Numerical Engine (GridSolver)
+- [ ] **GridSolver Core:** Create `PhysicsEngine/GridSolver.hpp/cpp` implementing the 1D TDSE via Crank-Nicolson.
+- [ ] **Thomas Algorithm:** Implement O(N) tridiagonal solver for the implicit Crank-Nicolson step.
+- [ ] **Absorbing Boundaries:** Add absorbing/damping boundary conditions at grid edges.
+- [ ] **Gaussian Injection:** Implement `inject_gaussian(x0, sigma, k0)` to place normalized wave packets on the grid.
+- [ ] **Normalization Verification:** Add `get_norm()` and periodic renormalization with configurable interval.
+- [ ] **Observables:** Implement `get_energy()`, `get_momentum_expectation()`, `get_position_expectation()`.
 
-## 🔵 Phase 3: Visual Implementation (RenderEngine) - IN PROGRESS
-- [x] **3D Visualizers:** Bloch sphere and wave packet rendering (Visualizer Agent).
-- [x] **Model Toggle:** Keys 1-4 to switch between simulation modes (Visualizer Agent).
-- [x] **Camera Controls:** Setup Orbital Camera for atomic inspection (Visualizer Agent).
-- [x] **UIHandler:** Inspector panel with real-time data readout (UI/UX Designer).
-- [ ] **Bohr View:** Render concentric shells and an orbiting electron "sprite" (Visualizer Agent).
-- [ ] **Probability Cloud Shader:** Write GLSL fragment shader for volumetric $|\psi|^2$ rendering (Visualizer Agent).
+## Phase 3: UI Overhaul (CAD-Style Editor)
+- [ ] **MenuBar:** Create `UIHandler/MenuBar.hpp/cpp` with File (New/Save/Load) and Scenarios (Double Slit, Infinite Well, Hydrogen Atom, Free Particle) menus.
+- [ ] **Toolbox:** Create `UIHandler/Toolbox.hpp/cpp` left sidebar with tool buttons and state machine (SELECT, PLACE_EMITTER, DRAW_WALL, DRAW_WELL, PLACE_DETECTOR).
+- [ ] **PropertiesPanel:** Create `UIHandler/PropertiesPanel.hpp/cpp` right sidebar with dynamic object inspection in tabular format.
+- [ ] **Professional Palette:** Apply mandatory color scheme (dark grays, steel blue accent, off-white text). Ban all arcade colors (GOLD, MAGENTA, YELLOW, LIME).
+- [ ] **Main Loop Rewrite:** Rewrite `src/main.cpp` to initialize `Scene` + 3-panel CAD layout. Remove legacy `SimulationMode` enum and `render_3d_scene()` switch-case.
 
-## 🟠 Phase 4: UI & Labs
-- [x] **Inspector Panel:** Real-time eV and $\lambda$ readout using Raylib 2D overlay (UI/UX Designer).
-- [ ] **Transition Lab:** User-defined photon λ to trigger electron jumps (Lead Agent).
-- [ ] **Photoelectric Lab:** Interactive metal plate simulation (Lead Agent).
+## Phase 4: Scenario Presets & Integration
+- [ ] **Double Slit Preset:** Pre-built scene with two slits in a potential barrier and a Gaussian wave packet emitter.
+- [ ] **Infinite Well Preset:** Pre-built scene with high walls and selectable eigenstates.
+- [ ] **Hydrogen Atom Preset:** Pre-built scene wrapping the existing `HydrogenModel` with orbital visualization.
+- [ ] **Free Particle Preset:** Empty potential with a single Gaussian emitter for basic wave-packet propagation.
+- [ ] **Viewport Rendering:** Render `PotentialField` as barrier geometry and `GridSolver` wavefunction as animated probability density in the 3D viewport.
 
-## 🏁 Phase 5: Distribution
-- [ ] **CI/CD Pipeline:** Create GitHub Actions for Win/Mac/Linux binaries (DevOps Agent).
-- [ ] **WASM Deployment:** Optimize build for web hosting (DevOps Agent).
+## Phase 5: Distribution & Polish
+- [ ] **CI/CD Pipeline:** GitHub Actions for Win/Mac/Linux binaries (DevOps Agent).
+- [ ] **WASM Deployment:** Verify async main loop with new Scene architecture (DevOps Agent).
+- [ ] **Keyboard Shortcuts:** Ctrl+S (Save), Ctrl+O (Load), Ctrl+N (New), Delete (remove selected object).
+- [ ] **Undo/Redo Stack:** Scene-level undo/redo for object placement and potential edits.
+- [ ] **Performance Profiling:** Ensure GridSolver runs at 60fps for N <= 2048 grid points.

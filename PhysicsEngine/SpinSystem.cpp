@@ -260,3 +260,11 @@ SpinSystem SpinSystem::create_superposition(
 
     return SpinSystem(theta, phi);
 }
+
+nlohmann::json SpinSystem::to_json() const {
+    return {
+        {"type", "SpinSystem"},
+        {"theta", theta_},
+        {"phi", phi_}
+    };
+}
