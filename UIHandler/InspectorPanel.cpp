@@ -59,14 +59,18 @@ void InspectorPanel::set_position(int x, int y) {
 // =============================================================================
 
 void InspectorPanel::draw_panel_background() {
-    Color bg_color = {20, 20, 30, bg_alpha_};
+    Color bg_color = {20, 20, 30, static_cast<unsigned char>(bg_alpha_)};
     DrawRectangle(position_x_, position_y_, panel_width_, panel_height_, bg_color);
 
     // Draw border
     Color border_color = {100, 100, 120, 150};
-    DrawRectangleLinesEx(
-        (Rectangle){(float)position_x_, (float)position_y_, (float)panel_width_, (float)panel_height_},
-        1.0f, border_color);
+    Rectangle panel_rect{
+        static_cast<float>(position_x_),
+        static_cast<float>(position_y_),
+        static_cast<float>(panel_width_),
+        static_cast<float>(panel_height_)
+    };
+    DrawRectangleLinesEx(panel_rect, 1.0f, border_color);
 }
 
 void InspectorPanel::draw_header() {

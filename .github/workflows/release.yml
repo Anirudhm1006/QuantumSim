@@ -38,7 +38,7 @@ jobs:
 
       - name: Configure CMake (Linux/macOS)
         if: matrix.platform != 'windows'
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 
       - name: Configure CMake (Windows)
         if: matrix.platform == 'windows'
@@ -47,37 +47,44 @@ jobs:
       - name: Build
         run: cmake --build build --config Release -j 4
 
-      - name: Create resources directory structure
+      - name: Create resources directory structure (Linux/macOS)
+        if: matrix.platform != 'windows'
+        shell: bash
         run: |
           mkdir -p package/resources
-          cp -r resources/* package/resources/ 2>/dev/null || true
+          cp -r resources/* package/resources/ || true
+
+      - name: Create resources directory structure (Windows)
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path package/resources -Force | Out-Null
+          if (Test-Path "resources") {
+            Copy-Item -Path "resources/*" -Destination "package/resources" -Recurse -Force
+          }
 
       - name: Package Linux
         if: matrix.platform == 'linux'
+        shell: bash
         run: |
           cp build/QuantumSim package/
           cd package
           tar -czf ../QuantumSim-linux-x64.tar.gz .
-          cd ..
-          mv QuantumSim-linux-x64.tar.gz .
 
       - name: Package Windows
         if: matrix.platform == 'windows'
+        shell: pwsh
         run: |
-          cp build/Release/QuantumSim.exe package/
-          cd package
-          powershell -Command "Compress-Archive -Path * -DestinationPath ../QuantumSim-windows-x64.zip"
-          cd ..
-          mv QuantumSim-windows-x64.zip .
+          Copy-Item "build/Release/QuantumSim.exe" "package/" -Force
+          Compress-Archive -Path "package/*" -DestinationPath "QuantumSim-windows-x64.zip" -Force
 
       - name: Package macOS
         if: matrix.platform == 'macos'
+        shell: bash
         run: |
           cp build/QuantumSim package/
           cd package
           tar -czf ../QuantumSim-macos-arm64.tar.gz .
-          cd ..
-          mv QuantumSim-macos-arm64.tar.gz .
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

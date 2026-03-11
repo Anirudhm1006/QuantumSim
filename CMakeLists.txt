@@ -98,6 +98,11 @@ endif()
 # Link Raylib
 target_link_libraries(QuantumSim PRIVATE raylib nlohmann_json::nlohmann_json)
 
+# MSVC requires this macro for M_PI and related constants in <cmath>.
+if(MSVC)
+    target_compile_definitions(QuantumSim PRIVATE _USE_MATH_DEFINES)
+endif()
+
 # ============================================================================
 # Build Type Specific Settings
 # ============================================================================
