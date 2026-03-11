@@ -36,8 +36,11 @@ struct TwoQubitState {
     std::complex<double> amp_10;  // |10⟩ amplitude
     std::complex<double> amp_11;  // |11⟩ amplitude
 
-    TwoQubitState() : amp_00({1.0, 0.0}), amp_01({0.0, 0.0}),
-                      amp_10({0.0, 0.0}), amp_11({0.0, 0.0}) {}
+    TwoQubitState()
+        : amp_00(1.0, 0.0)
+        , amp_01(0.0, 0.0)
+        , amp_10(0.0, 0.0)
+        , amp_11(0.0, 0.0) {}
 
     // Normalize the state
     void normalize() {
