@@ -4,8 +4,6 @@
 #include <raylib.h>
 
 #include "../IScenario.hpp"
-#include "GridSolver.hpp"
-#include "../PotentialField.hpp"
 #include "Slider.hpp"
 #include "HelpPopup.hpp"
 
@@ -27,9 +25,6 @@ public:
     [[nodiscard]] bool uses_3d() const override;
 
 private:
-    GridSolver solver_;
-    PotentialField potential_;
-
     Slider slit_width_slider_;
     Slider slit_sep_slider_;
     Slider wavelength_slider_;
@@ -40,34 +35,30 @@ private:
     bool wave_mode_ = true;
     bool detector_on_ = false;
 
+    static constexpr int HISTOGRAM_BINS = 200;
+
     std::vector<float> histogram_;
     std::vector<Vector2> particles_;
     int particles_detected_ = 0;
-
     double sim_time_ = 0.0;
     double particle_spawn_accum_ = 0.0;
-
-    static constexpr int HISTOGRAM_BINS = 200;
-    static constexpr int GRID_NX = 512;
-    static constexpr double GRID_X_MIN = -10.0;
-    static constexpr double GRID_X_MAX = 10.0;
-    static constexpr double GRID_DT = 0.001;
 
     [[nodiscard]] double slit_width() const { return static_cast<double>(slit_width_slider_.get_value()); }
     [[nodiscard]] double slit_sep() const { return static_cast<double>(slit_sep_slider_.get_value()); }
     [[nodiscard]] double wavelength() const { return static_cast<double>(wavelength_slider_.get_value()); }
 
     [[nodiscard]] static double sinc(double x);
-    [[nodiscard]] double intensity_at_angle(double sin_theta) const;
+    [[nodiscard]] double intensity_at_y(double y_pos) const;
+    [[nodiscard]] double intensity_no_interference(double y_pos) const;
+    [[nodiscard]] double current_intensity(double y_pos) const;
     [[nodiscard]] double fringe_spacing() const;
 
-    void rebuild_potential();
     void reset_simulation();
     void spawn_particle();
     void advance_particles(double dt);
 
     void render_setup_view(int vp_x, int vp_y, int vp_w, int vp_h);
-    void render_wavefunction_view(Camera3D& cam, int vp_x, int vp_y, int vp_w, int vp_h);
+    void render_wave3d_view(Camera3D& cam, int vp_x, int vp_y, int vp_w, int vp_h);
     void render_pattern_view(int vp_x, int vp_y, int vp_w, int vp_h);
     void render_heatmap_view(int vp_x, int vp_y, int vp_w, int vp_h);
 
