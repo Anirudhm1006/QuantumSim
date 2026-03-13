@@ -1,10 +1,10 @@
 #pragma once
 
+#include <vector>
+#include <random>
 #include <raylib.h>
 
 #include "../IScenario.hpp"
-#include "GridSolver.hpp"
-#include "../PotentialField.hpp"
 #include "Slider.hpp"
 #include "HelpPopup.hpp"
 
@@ -21,41 +21,41 @@ public:
     void render_properties(int x, int y, int w, int h) override;
 
     [[nodiscard]] const char* get_name() const override { return "De Broglie"; }
-    [[nodiscard]] int get_view_count() const override { return 2; }
+    [[nodiscard]] int get_view_count() const override { return 3; }
     [[nodiscard]] const char* get_view_name(int idx) const override;
-    [[nodiscard]] bool uses_3d() const override { return current_view_ == 0; }
+    [[nodiscard]] bool uses_3d() const override { return false; }
 
 private:
-    GridSolver solver_;
-    PotentialField potential_;
-
     Slider velocity_slider_;
+    Slider crystal_d_slider_;
     int particle_type_ = 0;
-
     HelpPopup help_popup_;
 
-    static constexpr double HBAR = 1.0;
+    double anim_time_ = 0.0;
+    float particle_anim_x_ = 0.0f;
+
     static constexpr double H_SI = 6.62607015e-34;
+    static constexpr double C_SI = 2.998e8;
 
     struct ParticlePreset {
         const char* name;
         double mass_kg;
+        double typical_size_m;
+        bool is_quantum;
     };
-    static constexpr ParticlePreset PRESETS[] = {
-        {"Electron", 9.109e-31},
-        {"Proton", 1.673e-27},
-        {"Baseball (0.145 kg)", 0.145}
-    };
-    static constexpr int NUM_PRESETS = 3;
+    static constexpr int NUM_PRESETS = 6;
+    static const ParticlePreset PRESETS[NUM_PRESETS];
 
-    [[nodiscard]] double k0() const;
-    [[nodiscard]] double momentum_au() const;
-    [[nodiscard]] double lambda_au() const;
-    [[nodiscard]] double energy_au() const;
+    [[nodiscard]] double velocity_mps() const;
+    [[nodiscard]] double momentum_si() const;
     [[nodiscard]] double lambda_si() const;
+    [[nodiscard]] double lambda_display_val() const;
+    [[nodiscard]] const char* lambda_display_unit() const;
+    [[nodiscard]] bool is_quantum_regime() const;
 
-    void reset_solver();
+    std::mt19937 rng_{42};
 
-    void render_wavepacket_view(Camera3D& cam, int vp_x, int vp_y, int vp_w, int vp_h);
-    void render_comparison_view(int vp_x, int vp_y, int vp_w, int vp_h);
+    void render_wave_animation(int vp_x, int vp_y, int vp_w, int vp_h);
+    void render_scale_comparison(int vp_x, int vp_y, int vp_w, int vp_h);
+    void render_diffraction(int vp_x, int vp_y, int vp_w, int vp_h);
 };

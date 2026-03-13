@@ -27,7 +27,11 @@ MenuBar::MenuBar()
         "Photoelectric Effect",
         "Spectra",
         "De Broglie",
-        "Heisenberg"
+        "Heisenberg",
+        "Spin",
+        "Superposition",
+        "Compton Scattering",
+        "Entanglement"
     };
     scenario_menu.actions = {
         MenuAction::Type::SCENARIO_DOUBLE_SLIT,
@@ -38,7 +42,11 @@ MenuBar::MenuBar()
         MenuAction::Type::SCENARIO_PHOTOELECTRIC,
         MenuAction::Type::SCENARIO_SPECTRUM,
         MenuAction::Type::SCENARIO_DE_BROGLIE,
-        MenuAction::Type::SCENARIO_HEISENBERG
+        MenuAction::Type::SCENARIO_HEISENBERG,
+        MenuAction::Type::SCENARIO_SPIN,
+        MenuAction::Type::SCENARIO_SUPERPOSITION,
+        MenuAction::Type::SCENARIO_COMPTON,
+        MenuAction::Type::SCENARIO_ENTANGLEMENT
     };
     menus_.push_back(scenario_menu);
 

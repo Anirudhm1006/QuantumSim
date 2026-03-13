@@ -15,6 +15,10 @@
 #include "scenarios/SpectrumScenario.hpp"
 #include "scenarios/DeBroglieScenario.hpp"
 #include "scenarios/HeisenbergScenario.hpp"
+#include "scenarios/SpinScenario.hpp"
+#include "scenarios/SuperpositionScenario.hpp"
+#include "scenarios/ComptonScenario.hpp"
+#include "scenarios/EntanglementScenario.hpp"
 #include "MenuBar.hpp"
 
 static void update_orbit_camera(Camera3D& cam, bool in_viewport) {
@@ -112,6 +116,10 @@ int main() {
     scenarios.push_back(std::make_unique<SpectrumScenario>());
     scenarios.push_back(std::make_unique<DeBroglieScenario>());
     scenarios.push_back(std::make_unique<HeisenbergScenario>());
+    scenarios.push_back(std::make_unique<SpinScenario>());
+    scenarios.push_back(std::make_unique<SuperpositionScenario>());
+    scenarios.push_back(std::make_unique<ComptonScenario>());
+    scenarios.push_back(std::make_unique<EntanglementScenario>());
 
     for (auto& s : scenarios) s->set_font(app_font);
 
@@ -139,6 +147,10 @@ int main() {
             case MenuAction::Type::SCENARIO_SPECTRUM:      switch_scenario(6); break;
             case MenuAction::Type::SCENARIO_DE_BROGLIE:    switch_scenario(7); break;
             case MenuAction::Type::SCENARIO_HEISENBERG:    switch_scenario(8); break;
+            case MenuAction::Type::SCENARIO_SPIN:           switch_scenario(9); break;
+            case MenuAction::Type::SCENARIO_SUPERPOSITION:  switch_scenario(10); break;
+            case MenuAction::Type::SCENARIO_COMPTON:        switch_scenario(11); break;
+            case MenuAction::Type::SCENARIO_ENTANGLEMENT:   switch_scenario(12); break;
             case MenuAction::Type::NONE: break;
         }
 
